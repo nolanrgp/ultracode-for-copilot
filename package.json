@@ -36,10 +36,11 @@
   "enabledApiProposals": [],
   "main": "./out/extension.js",
   "contributes": {
-    "languageModelChatProviders": [
+    "chatParticipants": [
       {
-        "vendor": "ultracode",
-        "displayName": "Ultracode"
+        "id": "ultracode",
+        "name": "Ultracode",
+        "description": "Claude Code-style deep reasoning with manifest, planning, and self-review."
       }
     ],
     "commands": [

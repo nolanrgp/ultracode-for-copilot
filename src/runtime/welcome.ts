@@ -1,10 +1,7 @@
 import vscode from 'vscode';
 import { WALKTHROUGH_ID, WELCOME_SHOWN_KEY } from '../consts';
 
-export async function showWelcomeIfNeeded(
-	context: vscode.ExtensionContext,
-	_provider: unknown,
-): Promise<void> {
+export async function showWelcomeIfNeeded(context: vscode.ExtensionContext): Promise<void> {
 	if (context.globalState.get<boolean>(WELCOME_SHOWN_KEY)) {
 		return;
 	}

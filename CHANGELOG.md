@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.7.0](https://github.com/nolanrgp/ultracode-for-copilot/compare/v0.6.2...v0.7.0) (2026-06-25)
+
+
+### Features
+
+* add configurable API model IDs for DeepSeek V4 Flash and Pro models ([#4](https://github.com/nolanrgp/ultracode-for-copilot/issues/4)) ([de132ca](https://github.com/nolanrgp/ultracode-for-copilot/commit/de132ca14f46a03584932e646c76ebe2add01aef))
+* add Ultra thinking effort to model picker ([842da54](https://github.com/nolanrgp/ultracode-for-copilot/commit/842da541fd56e74e8559f05417b094b6dc3e9725))
+* Chinese (zh-cn) i18n support ([#16](https://github.com/nolanrgp/ultracode-for-copilot/issues/16)) ([72a8a69](https://github.com/nolanrgp/ultracode-for-copilot/commit/72a8a696419d85aa5f82d1142abbc42ec4b50e9b))
+* **diagnostics:** add opt-in cache trace diagnostics ([#35](https://github.com/nolanrgp/ultracode-for-copilot/issues/35)) ([fa11e5b](https://github.com/nolanrgp/ultracode-for-copilot/commit/fa11e5bea0ccf4023b9947bba5ab4c333abb3ccb))
+* initial release v0.1.0 ([a30057e](https://github.com/nolanrgp/ultracode-for-copilot/commit/a30057e7a82493e681d92b72a16ef97cf1db60d6))
+* **provider:** add segment-aware request diagnostics ([#66](https://github.com/nolanrgp/ultracode-for-copilot/issues/66)) ([c20565a](https://github.com/nolanrgp/ultracode-for-copilot/commit/c20565a5b9555efc5535fbb7897e69e361af7906))
+* **provider:** show DeepSeek pricing in model picker ([#128](https://github.com/nolanrgp/ultracode-for-copilot/issues/128)) ([959bd0d](https://github.com/nolanrgp/ultracode-for-copilot/commit/959bd0de3be29cbc5e55540c113d74d09c7cb23c))
+* report token usage to Copilot context via LanguageModelDataPart ([#60](https://github.com/nolanrgp/ultracode-for-copilot/issues/60)) ([01ef9e5](https://github.com/nolanrgp/ultracode-for-copilot/commit/01ef9e5f4134fbb5981a5f2c3dbd75ff6bd8162e))
+* Ultra multi-agent orchestration engine ([e35fedc](https://github.com/nolanrgp/ultracode-for-copilot/commit/e35fedc6a5ebca0ecabc4e005acfd9ce6d3c2f55))
+* **vision:** add configurable vision proxy ([#127](https://github.com/nolanrgp/ultracode-for-copilot/issues/127)) ([f5d9b8d](https://github.com/nolanrgp/ultracode-for-copilot/commit/f5d9b8d35dc50c8c3fba307814d6af682e1ac1b1))
+
+
+### Bug Fixes
+
+* add in-memory LRU cache for vision image descriptions ([#36](https://github.com/nolanrgp/ultracode-for-copilot/issues/36)) ([05fac93](https://github.com/nolanrgp/ultracode-for-copilot/commit/05fac9392270e5d58a51769b76f4c5378457b1bc))
+* **auth:** allow compatible provider API tokens ([#34](https://github.com/nolanrgp/ultracode-for-copilot/issues/34)) ([e06c550](https://github.com/nolanrgp/ultracode-for-copilot/commit/e06c550e2183ec1c143dcaee28c4b4b32f89a3a1))
+* **client:** improve request failure diagnostics ([#109](https://github.com/nolanrgp/ultracode-for-copilot/issues/109)) ([40cc542](https://github.com/nolanrgp/ultracode-for-copilot/commit/40cc542bfc7cdf266f857e30ecb4ad35a2f439f1))
+* **diagnostics:** classify cache traces by request kind ([#97](https://github.com/nolanrgp/ultracode-for-copilot/issues/97)) ([7212765](https://github.com/nolanrgp/ultracode-for-copilot/commit/7212765aaa53a57145fa9d33412bfb453ee7f879))
+* **extension:** let VS Code infer extension host ([#78](https://github.com/nolanrgp/ultracode-for-copilot/issues/78)) ([95e79ab](https://github.com/nolanrgp/ultracode-for-copilot/commit/95e79ab5e77f2745f1044e25e55a01fe7c7910eb))
+* **json:** sanitize lone surrogates before serialization ([#40](https://github.com/nolanrgp/ultracode-for-copilot/issues/40)) ([40a21a4](https://github.com/nolanrgp/ultracode-for-copilot/commit/40a21a4719edc8c2fe0d2e9d25953244917af8b3))
+* **logger:** diagnostics log visibility ([#89](https://github.com/nolanrgp/ultracode-for-copilot/issues/89)) ([792691d](https://github.com/nolanrgp/ultracode-for-copilot/commit/792691d15ca77ecc4a7313d5c9f6ebb3392d5bb7))
+* **manifest:** resolve marketplace display metadata ([#41](https://github.com/nolanrgp/ultracode-for-copilot/issues/41)) ([20b86b7](https://github.com/nolanrgp/ultracode-for-copilot/commit/20b86b791cbd068477cc46a556e2e061cee581e3))
+* Orchestrator now produces execution plan, not just analysis ([72f9c1f](https://github.com/nolanrgp/ultracode-for-copilot/commit/72f9c1f94c6119e7e26c6659333268112a903856))
+* **provider:** dedupe streaming usage reports ([#145](https://github.com/nolanrgp/ultracode-for-copilot/issues/145)) ([b3cbdfa](https://github.com/nolanrgp/ultracode-for-copilot/commit/b3cbdfa8be7e3ee2139e2763014cf1b391e7cf80))
+* **provider:** disable thinking for internal helper requests ([#137](https://github.com/nolanrgp/ultracode-for-copilot/issues/137)) ([6809989](https://github.com/nolanrgp/ultracode-for-copilot/commit/680998971fb01ef9d88f70fa6bdd7709a510095c))
+* **provider:** improve DeepSeek request failure handling ([#104](https://github.com/nolanrgp/ultracode-for-copilot/issues/104)) ([788b1d7](https://github.com/nolanrgp/ultracode-for-copilot/commit/788b1d7c36aab2d92aeff67412b9ea66ddb5f48c))
+* **provider:** make preflight tool call ids provider-safe ([#86](https://github.com/nolanrgp/ultracode-for-copilot/issues/86)) ([cb91620](https://github.com/nolanrgp/ultracode-for-copilot/commit/cb916206c1c27795a80c7923d95800e8968530d2))
+* **provider:** mark DeepSeek models as BYOK ([#162](https://github.com/nolanrgp/ultracode-for-copilot/issues/162)) ([50ff6ba](https://github.com/nolanrgp/ultracode-for-copilot/commit/50ff6ba85b2c8d7911d7f6dddb6492c2ebdb1b17))
+* **provider:** persist reasoning across reloads ([#79](https://github.com/nolanrgp/ultracode-for-copilot/issues/79)) ([0605da9](https://github.com/nolanrgp/ultracode-for-copilot/commit/0605da9af052c9bede99333a39615762ae53ea29))
+* **provider:** recursively count all part types in provideTokenCount ([#51](https://github.com/nolanrgp/ultracode-for-copilot/issues/51)) ([1bd8636](https://github.com/nolanrgp/ultracode-for-copilot/commit/1bd8636d04e98036b76e74d44abd8ac39ee7af1c))
+* **provider:** stabilize DeepSeek tool list handling ([#77](https://github.com/nolanrgp/ultracode-for-copilot/issues/77)) ([eec6bde](https://github.com/nolanrgp/ultracode-for-copilot/commit/eec6bdeb11e08f4f77bf4ff11b273a45c635d585))
+* **provider:** stabilize reasoning replay across tool turns ([#39](https://github.com/nolanrgp/ultracode-for-copilot/issues/39)) ([e283bc0](https://github.com/nolanrgp/ultracode-for-copilot/commit/e283bc014bf8c2e2b4e0ebfd0869be6819a35d46))
+* remove extensionDependencies on github.copilot-chat for SSH-Remote compatibility ([#45](https://github.com/nolanrgp/ultracode-for-copilot/issues/45)) ([11d020e](https://github.com/nolanrgp/ultracode-for-copilot/commit/11d020e196fac5f80b48ae1e2f2314680191f2aa))
+* rename displayName to avoid Marketplace name collision ([a9f11f8](https://github.com/nolanrgp/ultracode-for-copilot/commit/a9f11f85c0ca2efeee1fc77832a49abcb2b79f61))
+* **replay:** persist reasoning and vision markers across turns ([#82](https://github.com/nolanrgp/ultracode-for-copilot/issues/82)) ([30b725b](https://github.com/nolanrgp/ultracode-for-copilot/commit/30b725b90b43b5165ac6299354e4f5f05381cc54))
+* report context window correctly ([#71](https://github.com/nolanrgp/ultracode-for-copilot/issues/71)) ([d8c9b86](https://github.com/nolanrgp/ultracode-for-copilot/commit/d8c9b86cfcd62304a9893c77224d8c0275781688))
+* thinking effort dropdown missing on first launch ([#13](https://github.com/nolanrgp/ultracode-for-copilot/issues/13)) ([27deac1](https://github.com/nolanrgp/ultracode-for-copilot/commit/27deac14cb69a3e51eaf908919ded9db8fcb1ab6))
+* Ultra agents — context injection, retry, parallelism, error handling ([b1faa60](https://github.com/nolanrgp/ultracode-for-copilot/commit/b1faa609c5d7a0a2346580a74de05883ab760374))
+* **vision:** disambiguate VS Code LM model selection ([#161](https://github.com/nolanrgp/ultracode-for-copilot/issues/161)) ([1d7b668](https://github.com/nolanrgp/ultracode-for-copilot/commit/1d7b6685649b1ee05f3f49f7cd2008b237734c18)), closes [#149](https://github.com/nolanrgp/ultracode-for-copilot/issues/149)
+* **vision:** retain image context in follow-up turns ([#81](https://github.com/nolanrgp/ultracode-for-copilot/issues/81)) ([797b3d3](https://github.com/nolanrgp/ultracode-for-copilot/commit/797b3d3f40f1da7c5c64a2f09d273104dcfd094c))
+
+
+### Documentation
+
+* add Simplified Chinese README (zh-cn) ([#46](https://github.com/nolanrgp/ultracode-for-copilot/issues/46)) ([a477c1e](https://github.com/nolanrgp/ultracode-for-copilot/commit/a477c1ecc6ea1fde1060d685dfce8dfdb97c8996))
+* **readme:** clarify no extra process comparison ([#84](https://github.com/nolanrgp/ultracode-for-copilot/issues/84)) ([39a1cf6](https://github.com/nolanrgp/ultracode-for-copilot/commit/39a1cf687be36edc2ba81270b2f14ebe6a39a0d6))
+* **readme:** document model ID overrides ([#22](https://github.com/nolanrgp/ultracode-for-copilot/issues/22)) ([7d38322](https://github.com/nolanrgp/ultracode-for-copilot/commit/7d38322818d15380eba7c28058de45140a7aa73a))
+
 ## [0.6.2](https://github.com/Vizards/deepseek-v4-for-copilot/compare/v0.6.1...v0.6.2) (2026-06-16)
 
 

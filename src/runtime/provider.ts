@@ -1,23 +1,14 @@
 import vscode from 'vscode';
 import { logger } from '../logger';
-import { DeepSeekChatProvider } from '../provider';
+import { UltracodeChatProvider } from '../provider';
 
 export async function registerProvider(
 	context: vscode.ExtensionContext,
-): Promise<DeepSeekChatProvider> {
-	const provider = new DeepSeekChatProvider(context);
+): Promise<UltracodeChatProvider> {
+	const provider = new UltracodeChatProvider(context);
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand('deepseek-copilot.setApiKey', () => provider.configureApiKey()),
-		vscode.commands.registerCommand('deepseek-copilot.clearApiKey', () => provider.clearApiKey()),
-		vscode.commands.registerCommand('deepseek-copilot.setVisionModel', () =>
-			provider.setVisionModel(),
-		),
-		vscode.lm.registerLanguageModelChatProvider('deepseek', provider),
-	);
+	context.subscriptions.push(vscode.lm.registerLanguageModelChatProvider('ultracode', provider));
 
-	// Copilot Chat can serve cached model info without configurationSchema.
-	// Activate it first so this refresh reaches a live listener and re-queries the provider.
 	await activateCopilotChat();
 	provider.refreshModelPicker();
 

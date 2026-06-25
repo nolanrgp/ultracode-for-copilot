@@ -1,214 +1,133 @@
 import vscode from 'vscode';
-import { AuthManager } from '../auth';
-import { getStabilizeToolListEnabled } from '../config';
-import { MODELS } from '../consts';
+import { getEffortEnabled } from '../config';
+import { ULTRACODE_MODEL_ID } from '../consts';
 import { t } from '../i18n';
 import { logger } from '../logger';
-import { createCacheDiagnosticsRecorder, dumpProviderInput } from './debug';
-import { toChatInfo } from './models';
-import { BalanceCurrencyResolver } from './pricing/currency';
-import { prepareChatRequest } from './request';
-import { classifyProviderRequest } from './routing';
-import { resolveConversationSegment } from './segment';
-import { streamChatCompletion } from './stream';
-import { estimateTokenCount } from './tokens';
-import { processToolFlow } from './tools/flow';
-import { createVisionService } from './vision';
 
 /**
- * DeepSeek Chat Provider — implements vscode.LanguageModelChatProvider so
- * DeepSeek V4 models appear directly in the Copilot Chat model picker.
+ * Ultracode Chat Provider — implements vscode.LanguageModelChatProvider.
+ * Provides a single "Ultracode" model with an "ultracode" reasoning effort level.
  */
-export class DeepSeekChatProvider implements vscode.LanguageModelChatProvider {
-	private readonly authManager: AuthManager;
-	private readonly globalStorageUri: vscode.Uri;
-	private readonly onDidChangeLanguageModelChatInformationEmitter = new vscode.EventEmitter<void>();
+export class UltracodeChatProvider implements vscode.LanguageModelChatProvider {
+	private readonly onDidChangeEmitter = new vscode.EventEmitter<void>();
 	private isActive = true;
 
-	readonly onDidChangeLanguageModelChatInformation =
-		this.onDidChangeLanguageModelChatInformationEmitter.event;
-
-	private readonly cacheDiagnostics = createCacheDiagnosticsRecorder();
-
-	/** Vision proxy: internal bridge + VS Code LM fallback. */
-	private readonly vision: ReturnType<typeof createVisionService>;
-	private readonly balanceCurrencyResolver: BalanceCurrencyResolver;
-
-	/**
-	 * Adaptive chars-per-token ratio, calibrated from actual usage data.
-	 * Updated via exponential moving average each time the API reports real token counts.
-	 */
-	private charsPerToken = 4.0;
+	readonly onDidChangeLanguageModelChatInformation = this.onDidChangeEmitter.event;
 
 	constructor(context: vscode.ExtensionContext) {
-		this.authManager = new AuthManager(context);
-		this.globalStorageUri = context.globalStorageUri;
-		this.vision = createVisionService(context);
-		this.balanceCurrencyResolver = new BalanceCurrencyResolver(context, this.authManager, () =>
-			this.onDidChangeLanguageModelChatInformationEmitter.fire(),
-		);
-
 		context.subscriptions.push(
-			this.onDidChangeLanguageModelChatInformationEmitter,
-			// Settings-based fallback API key + base URL changes.
+			this.onDidChangeEmitter,
 			vscode.workspace.onDidChangeConfiguration((e) => {
-				if (
-					e.affectsConfiguration('deepseek-copilot.apiKey') ||
-					e.affectsConfiguration('deepseek-copilot.baseUrl')
-				) {
-					this.invalidateCurrencyAndRefreshModels();
-				}
-			}),
-			// Multi-window: SecretStorage changes don't fire onDidChangeConfiguration.
-			// When another window sets/clears the API key, refresh this window's
-			// model picker so the warning state stays in sync.
-			context.secrets.onDidChange((e) => {
-				if (e.key === 'deepseek-copilot.apiKey') {
-					this.invalidateCurrencyAndRefreshModels();
+				if (e.affectsConfiguration('ultracode-copilot')) {
+					this.onDidChangeEmitter.fire();
 				}
 			}),
 		);
 	}
 
-	// ---- Public commands ----
-
-	async configureApiKey(): Promise<void> {
-		const saved = await this.authManager.promptForApiKey();
-		if (saved) {
-			this.invalidateCurrencyAndRefreshModels();
-		}
-	}
-
-	async clearApiKey(): Promise<void> {
-		await this.authManager.deleteApiKey();
-		this.invalidateCurrencyAndRefreshModels();
-		vscode.window.showInformationMessage(t('auth.removed'));
-	}
-
-	async hasApiKey(): Promise<boolean> {
-		return this.authManager.hasApiKey();
-	}
-
-	/** Force Copilot Chat to re-query model information (including configurationSchema). */
-	refreshModelPicker(): void {
-		this.onDidChangeLanguageModelChatInformationEmitter.fire();
-	}
-
-	private invalidateCurrencyAndRefreshModels(): void {
-		void this.balanceCurrencyResolver
-			.invalidate()
-			.catch((error) => logger.warn('Failed to invalidate DeepSeek balance currency', error))
-			.finally(() => this.onDidChangeLanguageModelChatInformationEmitter.fire());
-	}
-
-	async prepareForDeactivate(): Promise<void> {
-		this.isActive = false;
-		this.onDidChangeLanguageModelChatInformationEmitter.fire();
-
-		// Force the host to re-pull `provideLanguageModelChatInformation` synchronously
-		// before the extension unloads. With `isActive = false` we now return [],
-		// which makes Copilot Chat drop DeepSeek models from the picker immediately
-		// instead of leaving stale entries behind after deactivate. The returned
-		// model list itself is unused — we only call this for its side effect.
-		try {
-			await vscode.lm.selectChatModels({ vendor: 'deepseek' });
-		} catch (error) {
-			logger.warn('Failed to refresh DeepSeek models during deactivate', error);
-		}
-	}
-
-	async setVisionModel(): Promise<void> {
-		await this.vision.openConfiguration();
-	}
-
-	// ---- LanguageModelChatProvider ----
+	// ---- Model information ----
 
 	async provideLanguageModelChatInformation(
 		_options: vscode.PrepareLanguageModelChatModelOptions,
 		_token: vscode.CancellationToken,
 	): Promise<vscode.LanguageModelChatInformation[]> {
-		if (!this.isActive) {
-			return [];
-		}
+		if (!this.isActive) return [];
 
-		const hasKey = await this.authManager.hasApiKey();
-		const pricingCurrency = this.balanceCurrencyResolver.getDisplayCurrency();
-		if (hasKey) {
-			this.balanceCurrencyResolver.refreshInBackground();
-		}
-		return MODELS.map((model) => toChatInfo(model, hasKey, pricingCurrency));
+		return [
+			{
+				id: ULTRACODE_MODEL_ID,
+				name: 'Ultracode',
+				family: 'ultracode',
+				version: '1.0.0',
+				maxInputTokens: 655360,
+				maxOutputTokens: 393216,
+				capabilities: {
+					toolCalling: true,
+					imageInput: false,
+				},
+			} as vscode.LanguageModelChatInformation,
+		];
 	}
+
+	// ---- Token count ----
+
+	async provideTokenCount(
+		_model: vscode.LanguageModelChatInformation,
+		text: string | vscode.LanguageModelChatRequestMessage,
+		_token: vscode.CancellationToken,
+	): Promise<number> {
+		const str = typeof text === 'string' ? text : JSON.stringify(text);
+		return Math.ceil(str.length / 4);
+	}
+
+	// ---- Chat response ----
 
 	async provideLanguageModelChatResponse(
 		modelInfo: vscode.LanguageModelChatInformation,
 		messages: readonly vscode.LanguageModelChatRequestMessage[],
 		options: vscode.ProvideLanguageModelChatResponseOptions,
 		progress: vscode.Progress<vscode.LanguageModelResponsePart>,
-		token: vscode.CancellationToken,
+		_token: vscode.CancellationToken,
 	): Promise<void> {
-		const segment = resolveConversationSegment(messages);
-		const requestKind = classifyProviderRequest({
-			messages,
-			tools: options.tools,
-		});
+		const modelId = modelInfo.id ?? ULTRACODE_MODEL_ID;
+		const reasoningEffort =
+			((options as unknown as Record<string, unknown>)?.reasoningEffort as string) ?? 'high';
 
-		dumpProviderInput({
-			globalStorageUri: this.globalStorageUri,
-			segment,
-			modelInfo,
-			messages,
-			requestOptions: options,
-			requestKind,
-		});
-
-		const toolFlow = processToolFlow({
-			stabilizeToolList: getStabilizeToolListEnabled(),
-			messages,
-			tools: options.tools,
-			progress,
-			requestKind,
-		});
-		if (toolFlow.preflightHandled) {
-			return;
+		if (reasoningEffort === 'ultracode' && getEffortEnabled()) {
+			const planMode = detectPlanMode(messages);
+			const prompt = buildUltracodePrompt(planMode);
+			const notice = planMode ? t('ultracode.notice.planMode') : t('ultracode.notice.actMode');
+			logger.info(`Ultracode: ${notice} prompt=${prompt.length}chars`);
 		}
 
-		const prepared = await prepareChatRequest({
-			authManager: this.authManager,
-			globalStorageUri: this.globalStorageUri,
-			modelInfo,
-			segment,
-			messages: toolFlow.messages,
-			options,
-			token,
-			cacheDiagnostics: this.cacheDiagnostics,
-			getVisionDescriber: () => this.vision.get(),
-		});
+		logger.info(`Ultracode: model=${modelId} effort=${reasoningEffort}`);
 
-		return streamChatCompletion({
-			prepared,
-			progress,
-			token,
-			initialResponseNotice: joinInitialResponseNotices(
-				toolFlow.initialResponseNotice,
-				prepared.initialResponseNotice,
+		// Stub: full pipeline comes in Phase 2
+		progress.report(
+			new vscode.LanguageModelTextPart(
+				`Ultracode — effort: ${reasoningEffort}. Full pipeline in Phase 2.`,
 			),
-			getCharsPerToken: () => this.charsPerToken,
-			setCharsPerToken: (charsPerToken) => {
-				this.charsPerToken = charsPerToken;
-			},
-		});
+		);
 	}
 
-	async provideTokenCount(
-		_modelInfo: vscode.LanguageModelChatInformation,
-		text: string | vscode.LanguageModelChatRequestMessage,
-		_token: vscode.CancellationToken,
-	): Promise<number> {
-		return estimateTokenCount(text, this.charsPerToken);
+	// ---- Public API ----
+
+	refreshModelPicker(): void {
+		this.onDidChangeEmitter.fire();
+	}
+
+	prepareForDeactivate(): void {
+		this.isActive = false;
+		this.onDidChangeEmitter.fire();
 	}
 }
 
-function joinInitialResponseNotices(...notices: (string | undefined)[]): string | undefined {
-	const joined = notices.filter((notice) => notice && notice.trim().length > 0).join('\n');
-	return joined || undefined;
+// ---- Ultracode helpers ----
+
+function detectPlanMode(messages: readonly vscode.LanguageModelChatRequestMessage[]): boolean {
+	const systemMsg = messages.find((m) => (m.role as number) === 3);
+	if (!systemMsg) return false;
+	const text = systemMsg.content
+		.map((p) => (p instanceof vscode.LanguageModelTextPart ? p.value : ''))
+		.join('');
+	return /PLANNING AGENT/.test(text) || /NEVER start implementation/.test(text);
+}
+
+function buildUltracodePrompt(planMode: boolean): string {
+	const base =
+		'You are an expert AI programming assistant in ULTRACODE mode. ' +
+		'Think deeply, reason step by step, review your own work for correctness. ' +
+		'Follow the project conventions and instructions from the manifest.';
+	if (planMode) {
+		return (
+			base +
+			' You are in PLAN MODE. Explore codebase thoroughly. ' +
+			'Create detailed implementation plans. Do NOT write code.'
+		);
+	}
+	return (
+		base +
+		' You are in ACT MODE. Execute the plan. ' +
+		'Write production-quality code. Verify against the plan and conventions.'
+	);
 }

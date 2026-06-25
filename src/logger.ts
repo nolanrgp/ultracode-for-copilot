@@ -4,7 +4,7 @@ let channel: vscode.LogOutputChannel | undefined;
 
 function getChannel(): vscode.LogOutputChannel {
 	if (!channel) {
-		channel = vscode.window.createOutputChannel('DeepSeek', { log: true });
+		channel = vscode.window.createOutputChannel('Ultracode', { log: true });
 	}
 	return channel;
 }
@@ -28,6 +28,7 @@ export const logger = {
 	warn: (...args: unknown[]) => getChannel().warn(formatMessage(args)),
 	error: (...args: unknown[]) => getChannel().error(formatMessage(args)),
 	debug: (...args: unknown[]) => getChannel().debug(formatMessage(args)),
+	trace: (...args: unknown[]) => getChannel().trace(formatMessage(args)),
 	show: () => getChannel().show(),
 	dispose: () => {
 		channel?.dispose();

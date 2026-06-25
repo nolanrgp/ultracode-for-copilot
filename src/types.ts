@@ -4,15 +4,15 @@
 
 // ---- API request/response types ----
 
-export interface DeepSeekMessage {
+export interface UltracodeMessage {
 	role: 'system' | 'user' | 'assistant' | 'tool';
 	content: string;
 	tool_call_id?: string;
-	tool_calls?: DeepSeekToolCall[];
+	tool_calls?: UltracodeToolCall[];
 	reasoning_content?: string;
 }
 
-export interface DeepSeekToolCall {
+export interface UltracodeToolCall {
 	id: string;
 	type: 'function';
 	function: {
@@ -21,16 +21,7 @@ export interface DeepSeekToolCall {
 	};
 }
 
-export interface DeepSeekTool {
-	type: 'function';
-	function: {
-		name: string;
-		description?: string;
-		parameters?: Record<string, unknown>;
-	};
-}
-
-export interface DeepSeekUsage {
+export interface UltracodeUsage {
 	prompt_tokens: number;
 	completion_tokens: number;
 	total_tokens: number;
@@ -38,14 +29,21 @@ export interface DeepSeekUsage {
 	prompt_cache_miss_tokens?: number;
 }
 
-export interface DeepSeekRequest {
+export interface UltracodeRequest {
 	model: string;
-	messages: DeepSeekMessage[];
+	messages: UltracodeMessage[];
 	stream: boolean;
 	temperature?: number;
 	top_p?: number;
 	max_tokens?: number;
-	tools?: DeepSeekTool[];
+	tools?: Array<{
+		type: 'function';
+		function: {
+			name: string;
+			description?: string;
+			parameters?: Record<string, unknown>;
+		};
+	}>;
 	tool_choice?: 'none' | 'auto' | 'required';
 	thinking?: { type: 'enabled' | 'disabled' };
 	reasoning_effort?: 'high' | 'max';
@@ -54,7 +52,7 @@ export interface DeepSeekRequest {
 	};
 }
 
-export interface DeepSeekStreamChunk {
+export interface UltracodeStreamChunk {
 	id: string;
 	object: string;
 	created: number;
@@ -77,7 +75,7 @@ export interface DeepSeekStreamChunk {
 		};
 		finish_reason: string | null;
 	}>;
-	usage?: DeepSeekUsage;
+	usage?: UltracodeUsage;
 }
 
 // ---- Stream callbacks ----
@@ -85,38 +83,8 @@ export interface DeepSeekStreamChunk {
 export interface StreamCallbacks {
 	onContent: (content: string) => void;
 	onThinking: (text: string) => void;
-	onToolCall: (toolCall: DeepSeekToolCall) => void;
+	onToolCall: (toolCall: UltracodeToolCall) => void;
 	onError: (error: Error) => void;
 	onDone: () => void;
-	onUsage?: (usage: DeepSeekUsage) => void;
-}
-
-// ---- Model definitions ----
-
-export type PricingCurrency = 'USD' | 'CNY';
-
-export type PriceCategory = 'low' | 'medium' | 'high' | 'very_high';
-
-export interface ModelPricing {
-	cacheHitInput: number;
-	cacheMissInput: number;
-	output: number;
-}
-
-export interface ModelDefinition {
-	id: string;
-	name: string;
-	family: string;
-	version: string;
-	detail: string;
-	maxInputTokens: number;
-	maxOutputTokens: number;
-	capabilities: {
-		toolCalling: boolean | number;
-		imageInput: boolean;
-		thinking: boolean;
-	};
-	requiresThinkingParam: boolean;
-	pricing?: Readonly<Record<PricingCurrency, ModelPricing>>;
-	priceCategory?: PriceCategory;
+	onUsage?: (usage: UltracodeUsage) => void;
 }

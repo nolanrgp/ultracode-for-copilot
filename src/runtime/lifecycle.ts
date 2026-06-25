@@ -1,17 +1,15 @@
 import vscode from 'vscode';
 import { t } from '../i18n';
 import { logger } from '../logger';
-import { DeepSeekChatProvider } from '../provider';
+import { UltracodeChatProvider } from '../provider';
 import { registerActionUrls } from './actions';
 import { registerCommands } from './commands';
-import { initializeDiagnostics } from './diagnostics';
 import { registerProvider } from './provider';
 import { showWelcomeIfNeeded } from './welcome';
 
-let activeProvider: DeepSeekChatProvider | undefined;
+let activeProvider: UltracodeChatProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-	await initializeDiagnostics(context);
 	registerCommands(context);
 	registerActionUrls(context);
 
@@ -20,26 +18,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 		activeProvider = provider;
 
 		void showWelcomeIfNeeded(context, provider).catch((error) => {
-			logger.warn(t('extension.welcomeFailed'), error);
+			logger.warn('Welcome display failed', error);
 		});
 
-		logger.info(`Ultracode activated version=${context.extension.packageJSON.version}`);
+		logger.info(t('extension.activated'));
 	} catch (error) {
 		activeProvider = undefined;
 		logger.error('Failed to activate Ultracode extension', error);
-		void vscode.window.showErrorMessage(t('extension.activateFailed'));
+		void vscode.window.showErrorMessage(t('extension.activated') + ' failed');
 		throw error;
 	}
 }
 
 export async function deactivate(): Promise<void> {
 	try {
-		await activeProvider?.prepareForDeactivate();
+		activeProvider?.prepareForDeactivate();
 	} catch (error) {
-		logger.warn(t('extension.deactivateFailed'), error);
+		logger.warn('Deactivate error', error);
 	} finally {
-		activeProvider = undefined;
-		logger.info('Ultracode deactivated');
+		logger.info(t('extension.deactivated'));
 		logger.dispose();
 	}
 }

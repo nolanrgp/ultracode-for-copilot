@@ -1,31 +1,23 @@
 import type { CancellationToken } from 'vscode';
 import { safeStringify } from '../json';
-import { logger } from '../logger';
 import type {
-	DeepSeekRequest,
-	DeepSeekStreamChunk,
-	DeepSeekToolCall,
-	DeepSeekUsage,
+	UltracodeRequest,
+	UltracodeStreamChunk,
 	StreamCallbacks,
 } from '../types';
-import { createHttpError, formatRequestError, normalizeRequestError } from './error';
 
 /**
- * Lightweight SSE-streaming DeepSeek API client.
+ * Lightweight SSE-streaming API client.
  * No external dependencies — uses Node's built-in fetch.
  */
-export class DeepSeekClient {
+export class UltracodeClient {
 	constructor(
 		private readonly baseUrl: string,
 		private readonly apiKey: string,
 	) {}
 
-	/**
-	 * Stream a chat completion from the DeepSeek API.
-	 * Parses SSE chunks and dispatches callbacks for content, thinking, and tool calls.
-	 */
 	async streamChatCompletion(
-		request: DeepSeekRequest,
+		request: UltracodeRequest,
 		callbacks: StreamCallbacks,
 		cancellationToken?: CancellationToken,
 	): Promise<void> {
@@ -38,7 +30,6 @@ export class DeepSeekClient {
 		}
 
 		try {
-			// Request usage stats in streaming responses so we can calibrate token counting.
 			const requestBody = {
 				...request,
 				stream_options: { include_usage: true },
@@ -55,143 +46,70 @@ export class DeepSeekClient {
 			});
 
 			if (!response.ok) {
-				throw await createHttpError(response, { baseUrl: this.baseUrl, request });
+				const text = await response.text().catch(() => '');
+				throw new Error(`HTTP ${response.status}: ${text}`);
 			}
 
 			if (!response.body) {
-				throw new Error('No response body received');
+				throw new Error('No response body');
 			}
 
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder();
 			let buffer = '';
-			let latestUsage: DeepSeekUsage | undefined;
-
-			// Accumulate tool call deltas by index, then emit on finish_reason=stop/tool_calls
-			const pendingToolCalls = new Map<number, DeepSeekToolCall>();
 
 			while (true) {
-				if (cancellationToken?.isCancellationRequested) {
-					controller.abort();
-					return;
-				}
-
 				const { done, value } = await reader.read();
-				if (done) {
-					break;
-				}
+				if (done) break;
 
 				buffer += decoder.decode(value, { stream: true });
-
 				const lines = buffer.split('\n');
-				buffer = lines.pop() || '';
+				buffer = lines.pop() ?? '';
 
 				for (const line of lines) {
 					const trimmed = line.trim();
+					if (!trimmed || !trimmed.startsWith('data:')) continue;
+					const data = trimmed.slice(5).trim();
+					if (data === '[DONE]') continue;
 
-					if (!trimmed || trimmed.startsWith(':')) {
-						continue;
-					}
-
-					if (trimmed === 'data: [DONE]') {
-						// Flush any remaining tool calls
-						for (const tc of pendingToolCalls.values()) {
-							callbacks.onToolCall(tc);
-						}
-						pendingToolCalls.clear();
-						reportFinalUsage(callbacks, latestUsage);
-						callbacks.onDone();
-						return;
-					}
-
-					if (!trimmed.startsWith('data: ')) {
-						continue;
-					}
-
-					const jsonStr = trimmed.slice(6);
 					try {
-						const chunk: DeepSeekStreamChunk = JSON.parse(jsonStr);
+						const chunk: UltracodeStreamChunk = JSON.parse(data);
 						const choice = chunk.choices?.[0];
+						if (!choice) continue;
 
-						// Some OpenAI-compatible providers emit usage on every streaming chunk.
-						// Keep only the latest value and report it once when the stream completes.
-						if (chunk.usage) {
-							latestUsage = chunk.usage;
+						if (choice.delta?.reasoning_content) {
+							callbacks.onThinking(choice.delta.reasoning_content);
 						}
-
-						if (!choice) {
-							continue;
-						}
-
-						// Thinking content → report with correct field name so VS Code renders collapsible blocks
-						const reasoning = choice.delta.reasoning_content;
-						if (reasoning) {
-							callbacks.onThinking(reasoning);
-						}
-
-						// Regular content
-						if (choice.delta.content) {
+						if (choice.delta?.content) {
 							callbacks.onContent(choice.delta.content);
 						}
-
-						// Tool calls — accumulate deltas by index
-						if (choice.delta.tool_calls) {
+						if (choice.delta?.tool_calls) {
 							for (const tc of choice.delta.tool_calls) {
-								let pending = pendingToolCalls.get(tc.index);
-								if (!pending && tc.id) {
-									pending = {
+								if (tc.id && tc.function?.name) {
+									callbacks.onToolCall({
 										id: tc.id,
 										type: 'function',
-										function: { name: '', arguments: '' },
-									};
-									pendingToolCalls.set(tc.index, pending);
-								}
-								if (pending) {
-									if (tc.function?.name) {
-										pending.function.name += tc.function.name;
-									}
-									if (tc.function?.arguments) {
-										pending.function.arguments += tc.function.arguments;
-									}
+										function: {
+											name: tc.function.name,
+											arguments: tc.function.arguments ?? '',
+										},
+									});
 								}
 							}
 						}
-
-						// Flush pending tool calls on finish
-						if (choice.finish_reason === 'tool_calls' || choice.finish_reason === 'stop') {
-							for (const tc of pendingToolCalls.values()) {
-								callbacks.onToolCall(tc);
-							}
-							pendingToolCalls.clear();
+						if (chunk.usage) {
+							callbacks.onUsage?.(chunk.usage);
 						}
-					} catch (e) {
-						logger.error('Failed to parse SSE chunk:', jsonStr.slice(0, 200), e);
+					} catch {
+						// skip malformed JSON
 					}
 				}
 			}
-
-			reportFinalUsage(callbacks, latestUsage);
-			callbacks.onDone();
-		} catch (error) {
-			if (isAbortError(error) && cancellationToken?.isCancellationRequested) {
-				return;
-			}
-			const normalizedError = normalizeRequestError(error, { baseUrl: this.baseUrl, request });
-			logger.error('DeepSeek request failed:', formatRequestError(normalizedError));
-			callbacks.onError(normalizedError);
+		} catch (err) {
+			callbacks.onError(err instanceof Error ? err : new Error(String(err)));
 		} finally {
 			cancelListener?.dispose();
+			callbacks.onDone();
 		}
 	}
-}
-
-function reportFinalUsage(callbacks: StreamCallbacks, usage: DeepSeekUsage | undefined): void {
-	if (!usage || !callbacks.onUsage) {
-		return;
-	}
-	callbacks.onUsage(usage);
-}
-
-function isAbortError(error: unknown): boolean {
-	return error instanceof Error && error.name === 'AbortError';
 }

@@ -11,13 +11,9 @@ export async function initializeDiagnostics(context: vscode.ExtensionContext): P
 	}
 
 	logger.info(
-		`Activating extension version=${context.extension.packageJSON.version}` +
+		`Ultracode v=${context.extension.packageJSON.version}` +
 			` vscode=${vscode.version}` +
-			` extensionKind=${context.extension.extensionKind}` +
-			` remoteName=${vscode.env.remoteName ?? 'none'}` +
-			` uiKind=${vscode.env.uiKind}` +
 			` platform=${process.platform}` +
-			` arch=${process.arch}` +
 			` debugMode=${getDebugMode()}`,
 	);
 

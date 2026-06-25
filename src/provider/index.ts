@@ -6,6 +6,7 @@ import { t } from '../i18n';
 import { logger } from '../logger';
 import { createCacheDiagnosticsRecorder, dumpProviderInput } from './debug';
 import { toChatInfo } from './models';
+import { getConfiguredThinkingEffort, type ModelConfigurationOptions } from './models';
 import { BalanceCurrencyResolver } from './pricing/currency';
 import { prepareChatRequest } from './request';
 import { classifyProviderRequest } from './routing';
@@ -13,6 +14,7 @@ import { resolveConversationSegment } from './segment';
 import { streamChatCompletion } from './stream';
 import { estimateTokenCount } from './tokens';
 import { processToolFlow } from './tools/flow';
+import { runUltraWorkflow } from './ultra';
 import { createVisionService } from './vision';
 
 /**
@@ -172,6 +174,14 @@ export class DeepSeekChatProvider implements vscode.LanguageModelChatProvider {
 			return;
 		}
 
+		// Ultra Mode: multi-agent orchestration
+		const configuredEffort = getConfiguredThinkingEffort(options as ModelConfigurationOptions);
+		if (configuredEffort === 'ultra') {
+			const userPrompt = extractUserPrompt(toolFlow.messages);
+			await runUltraWorkflow(userPrompt, toolFlow.messages, progress, token);
+			return;
+		}
+
 		const prepared = await prepareChatRequest({
 			authManager: this.authManager,
 			globalStorageUri: this.globalStorageUri,
@@ -211,4 +221,16 @@ export class DeepSeekChatProvider implements vscode.LanguageModelChatProvider {
 function joinInitialResponseNotices(...notices: (string | undefined)[]): string | undefined {
 	const joined = notices.filter((notice) => notice && notice.trim().length > 0).join('\n');
 	return joined || undefined;
+}
+
+function extractUserPrompt(messages: readonly vscode.LanguageModelChatRequestMessage[]): string {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const msg = messages[i];
+		if (msg.role === 1) { // user role
+			return msg.content
+				.map((p) => (p instanceof vscode.LanguageModelTextPart ? p.value : ''))
+				.join('');
+		}
+	}
+	return '';
 }

@@ -29,7 +29,7 @@ export async function runParallelAgents(
 			try {
 				const messages = [
 					vscode.LanguageModelChatMessage.User(
-						`${agent.systemPrompt}\n\n---\n\nTASK:\n${task}\n\nProvide your analysis from your perspective as ${agent.name}. Be concise and actionable.`,
+						`${agent.systemPrompt}\n\n---\n\nTASK:\n${task}\n\nProduce the COMPLETE implementation. Write actual code, create files, build the solution. Do NOT describe what to do — DO it. Output the full deliverable.`,
 					),
 				];
 

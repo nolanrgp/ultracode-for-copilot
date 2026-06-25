@@ -38,19 +38,18 @@ export async function runSynthesis(
 		}
 	}
 
-	const synthesisPrompt = `You are the Orchestrator Agent. Synthesize all agent outputs and cross-reviews below into a single, comprehensive, final response for the user.
+	const synthesisPrompt = `You are the Orchestrator Agent. Validate and integrate all agent outputs below.
 
-Your synthesis should:
-1. Present a unified, conflict-free solution
-2. Incorporate the best ideas from all agents
-3. Note where agents disagreed and how it was resolved
-4. Include actionable next steps
-
-Do NOT repeat the raw agent outputs — create an integrated final answer.
+Your job:
+1. Verify each agent's output is COMPLETE and CORRECT — not just analysis, but actual implementation
+2. Flag any agent that only described what to do instead of actually doing it
+3. Integrate all working outputs into a single, cohesive final deliverable
+4. If cross-reviews found issues, confirm they are resolved
+5. Include the final, production-ready code/files/solution
 
 ${context}
 
-FINAL SYNTHESIS:`;
+FINAL VALIDATED OUTPUT:`;
 
 	try {
 		const response = await model.sendRequest(

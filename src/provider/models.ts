@@ -14,7 +14,7 @@ import { toModelCostInfo, type ModelCostInformation } from './pricing/costs';
  * metadata and per-model configuration controls.
  */
 
-export type ThinkingEffort = 'none' | 'high' | 'max';
+export type ThinkingEffort = 'none' | 'high' | 'max' | 'ultra';
 
 export type ModelConfigurationOptions = vscode.ProvideLanguageModelChatResponseOptions & {
 	readonly modelConfiguration?: Record<string, unknown>;
@@ -71,6 +71,10 @@ export function getConfiguredThinkingEffort(options: ModelConfigurationOptions):
 		return 'high';
 	}
 
+	if (configuredEffort === 'ultra') {
+		return 'ultra';
+	}
+
 	return configuredEffort === 'max' ? 'max' : 'high';
 }
 
@@ -80,12 +84,13 @@ function buildThinkingEffortSchema() {
 			reasoningEffort: {
 				type: 'string',
 				title: t('status.thinking'),
-				enum: ['none', 'high', 'max'],
-				enumItemLabels: [t('thinking.none'), t('thinking.high'), t('thinking.max')],
+				enum: ['none', 'high', 'max', 'ultra'],
+				enumItemLabels: [t('thinking.none'), t('thinking.high'), t('thinking.max'), t('thinking.ultra')],
 				enumDescriptions: [
 					t('thinking.none.desc'),
 					t('thinking.high.desc'),
 					t('thinking.max.desc'),
+					t('thinking.ultra.desc'),
 				],
 				default: 'high',
 				group: 'navigation',

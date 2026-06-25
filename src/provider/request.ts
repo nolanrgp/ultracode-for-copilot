@@ -93,6 +93,7 @@ export async function prepareChatRequest({
 	const forceNoneThinking =
 		shouldForceThinkingNone(requestKind) && isOfficialDeepSeekBaseUrl(baseUrl);
 	const thinkingEffort = forceNoneThinking ? 'none' : configuredThinkingEffort;
+	const apiReasoningEffort = (thinkingEffort === 'ultra' ? 'max' : thinkingEffort) as 'high' | 'max';
 	const request: DeepSeekRequest = {
 		...baseRequest,
 		...(isThinkingModel
@@ -100,7 +101,7 @@ export async function prepareChatRequest({
 					thinking: {
 						type: thinkingEffort === 'none' ? ('disabled' as const) : ('enabled' as const),
 					},
-					...(thinkingEffort === 'none' ? {} : { reasoning_effort: thinkingEffort }),
+					...(thinkingEffort === 'none' ? {} : { reasoning_effort: apiReasoningEffort }),
 				}
 			: {}),
 	};

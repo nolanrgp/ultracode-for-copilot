@@ -41,6 +41,8 @@ const zh: Translations = {
 	'thinking.high.desc': '推荐日常使用',
 	'thinking.max': '深度',
 	'thinking.max.desc': '深度推理，适合复杂任务',
+	'thinking.ultra': '超级',
+	'thinking.ultra.desc': '超级推理模式，深度推理+自我审查',
 
 	// Vision
 	'vision.proxyUsing': '视觉代理：{0}',
@@ -231,6 +233,8 @@ const en: Translations = {
 	'thinking.high.desc': 'Recommended for most tasks',
 	'thinking.max': 'Max',
 	'thinking.max.desc': 'Maximum reasoning depth for complex agent tasks',
+	'thinking.ultra': 'Ultra',
+	'thinking.ultra.desc': 'Ultra reasoning — maximum depth + self-review',
 
 	// Vision
 	// NOTE: vision.unableToDescribe has been moved to consts.ts as

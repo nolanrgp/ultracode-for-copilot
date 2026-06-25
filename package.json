@@ -1,14 +1,14 @@
 {
-  "name": "deepseek-v4-for-copilot",
-  "displayName": "DeepSeek V4 for Copilot Chat",
-  "description": "Pick DeepSeek V4 Pro & Flash from the Copilot Chat model picker. Vision, thinking mode, agent tools — zero config, BYOK.",
+  "name": "ultracode-for-copilot",
+  "displayName": "Ultracode for Copilot",
+  "description": "Ultracode mode for Copilot Chat on VS Code — inspired by Claude Code's Ultracode effort mode. Deep reasoning, agent tools, vision proxy, BYOK.",
   "icon": "resources/icon.png",
   "version": "0.6.2",
   "publisher": "Vizards",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Vizards/deepseek-v4-for-copilot"
+    "url": "https://github.com/nolanrpg/ultracode-for-copilot"
   },
   "engines": {
     "vscode": "^1.116.0",

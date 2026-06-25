@@ -23,10 +23,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			logger.warn(t('extension.welcomeFailed'), error);
 		});
 
-		logger.info(`Extension activated version=${context.extension.packageJSON.version}`);
+		logger.info(`Ultracode activated version=${context.extension.packageJSON.version}`);
 	} catch (error) {
 		activeProvider = undefined;
-		logger.error('Failed to activate DeepSeek extension', error);
+		logger.error('Failed to activate Ultracode extension', error);
 		void vscode.window.showErrorMessage(t('extension.activateFailed'));
 		throw error;
 	}
@@ -39,7 +39,7 @@ export async function deactivate(): Promise<void> {
 		logger.warn(t('extension.deactivateFailed'), error);
 	} finally {
 		activeProvider = undefined;
-		logger.info('Extension deactivated');
+		logger.info('Ultracode deactivated');
 		logger.dispose();
 	}
 }

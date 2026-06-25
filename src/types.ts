@@ -1,5 +1,5 @@
 /**
- * Shared types for the DeepSeek Copilot extension.
+ * Shared types for the Ultracode for Copilot extension.
  */
 
 // ---- API request/response types ----

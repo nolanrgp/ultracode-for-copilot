@@ -42,7 +42,7 @@ export const WELCOME_SHOWN_KEY = 'deepseek-copilot.welcomeShown';
 // ---- Walkthrough ----
 
 /** Walkthrough contribution ID. */
-export const WALKTHROUGH_ID = 'Vizards.deepseek-v4-for-copilot#deepseekGettingStarted';
+export const WALKTHROUGH_ID = 'Vizards.ultracode-for-copilot#deepseekGettingStarted';
 
 // ---- Model registry ----
 

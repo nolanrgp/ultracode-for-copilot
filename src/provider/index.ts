@@ -13,7 +13,7 @@ import { resolveConversationSegment } from './segment';
 import { streamChatCompletion } from './stream';
 import { estimateTokenCount } from './tokens';
 import { processToolFlow } from './tools/flow';
-import { runUltraWorkflow } from './ultra';
+import { buildWorkspaceContext } from './ultra/agents';
 import { createVisionService } from './vision';
 
 /**
@@ -173,12 +173,22 @@ export class DeepSeekChatProvider implements vscode.LanguageModelChatProvider {
 			return;
 		}
 
-		// Ultra Mode: multi-agent orchestration
+		// Ultra Mode: inject orchestrator plan into messages, let Copilot execute with tools
 		const configuredEffort = getConfiguredThinkingEffort(options as ModelConfigurationOptions);
 		if (configuredEffort === 'ultra') {
-			const userPrompt = extractUserPrompt(toolFlow.messages);
-			await runUltraWorkflow(userPrompt, toolFlow.messages, progress, token);
-			return;
+			const planMessage = await createUltraPlan(toolFlow.messages, progress, token);
+			if (planMessage) {
+				// Inject plan as the first message so Copilot's agent sees it and executes with tools
+				const planPart = new vscode.LanguageModelTextPart(planMessage);
+				const augmentedMessages = [...toolFlow.messages];
+				if (augmentedMessages.length > 0) {
+					augmentedMessages[0] = {
+						...augmentedMessages[0],
+						content: [planPart, ...augmentedMessages[0].content],
+					} as vscode.LanguageModelChatRequestMessage;
+				}
+				toolFlow.messages = augmentedMessages;
+			}
 		}
 
 		const prepared = await prepareChatRequest({
@@ -222,12 +232,55 @@ function joinInitialResponseNotices(...notices: (string | undefined)[]): string 
 	return joined || undefined;
 }
 
+async function createUltraPlan(
+	messages: readonly vscode.LanguageModelChatRequestMessage[],
+	progress: vscode.Progress<vscode.LanguageModelResponsePart>,
+	token: vscode.CancellationToken,
+): Promise<string | null> {
+	const [model] = await vscode.lm.selectChatModels();
+	if (!model) return null;
+
+	const userPrompt = extractUserPrompt(messages);
+	const ctx = buildWorkspaceContext();
+
+	const orchestratorPrompt = `You are the Ultra Mode Orchestrator. Analyze the workspace context and user request, then create a detailed EXECUTION PLAN for Copilot's agent to follow.
+
+WORKSPACE CONTEXT:
+${ctx || '(no context available)'}
+
+USER REQUEST:
+${userPrompt}
+
+Create a plan with:
+1. ANALYSIS — what needs to be done, key files
+2. STEPS — numbered, concrete steps (read X, modify Y, create Z)
+3. CONSTRAINTS — important rules to follow
+4. VERIFICATION — how to confirm completion
+
+Output clear markdown. Do NOT implement — Copilot will execute.`;
+
+	try {
+		const response = await model.sendRequest(
+			[vscode.LanguageModelChatMessage.User(orchestratorPrompt)],
+			{}, token,
+		);
+		let text = '';
+		for await (const part of response.stream) {
+			if (part instanceof vscode.LanguageModelTextPart) text += part.value;
+		}
+
+		progress.report(new vscode.LanguageModelTextPart('\n\n🔵 **Ultra Plan:**\n' + text + '\n\n---\n⏳ Executing...\n\n'));
+		return '\n\n🔵 **ULTRA MODE PLAN — Follow these instructions:**\n\n' + text + '\n\n---\n\nNow execute this plan step by step.';
+	} catch (err) {
+		logger.error('Ultra plan failed', err);
+		return null;
+	}
+}
+
 function extractUserPrompt(messages: readonly vscode.LanguageModelChatRequestMessage[]): string {
 	for (let i = messages.length - 1; i >= 0; i--) {
-		const msg = messages[i];
-		if (msg.role === 1) {
-			// user role
-			return msg.content
+		if (messages[i].role === 1) {
+			return messages[i].content
 				.map((p) => (p instanceof vscode.LanguageModelTextPart ? p.value : ''))
 				.join('');
 		}

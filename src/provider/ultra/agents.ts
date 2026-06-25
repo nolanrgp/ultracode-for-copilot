@@ -1,7 +1,7 @@
 /**
- * Ultra Agent Roles — each agent has a unique perspective and system prompt.
- * When Ultra mode is activated, the Orchestrator assigns tasks to these agents
- * based on the workflow plan.
+ * Ultra Agent Roles — dynamically defined by the Orchestrator.
+ * No hardcoded agents. The AI analyzes project context and user request
+ * to create custom agents with tailored system prompts.
  */
 
 export interface AgentRole {
@@ -11,63 +11,50 @@ export interface AgentRole {
 	systemPrompt: string;
 }
 
-export const ULTRA_AGENTS: Record<string, AgentRole> = {
-	architect: {
-		id: 'architect',
-		name: 'Software Architect',
-		emoji: '🏗️',
-		systemPrompt: `You are a Senior Software Architect. Your role is to design system architecture, define component boundaries, data flows, and API contracts. Think about scalability, maintainability, and clean architecture patterns. Output structured, actionable design decisions.`,
-	},
-	security: {
-		id: 'security',
-		name: 'Security Expert',
-		emoji: '🔒',
-		systemPrompt: `You are a Security Expert. Your role is to identify security vulnerabilities, threat vectors, and ensure best practices. Review for OWASP Top 10, authentication/authorization flaws, injection risks, and data protection. Be critical — every finding is valuable.`,
-	},
-	performance: {
-		id: 'performance',
-		name: 'Performance Engineer',
-		emoji: '⚡',
-		systemPrompt: `You are a Performance Engineer. Your role is to identify bottlenecks, optimize algorithms, reduce latency, and ensure scalability. Think about caching strategies, database query optimization, and resource utilization.`,
-	},
-	ux: {
-		id: 'ux',
-		name: 'UX Designer',
-		emoji: '🎨',
-		systemPrompt: `You are a UX Designer. Your role is to ensure excellent user experience, intuitive interfaces, accessibility (WCAG), and clear information architecture. Think about the user journey, error states, and edge cases from the user's perspective.`,
-	},
-	reviewer: {
-		id: 'reviewer',
-		name: 'Code Reviewer',
-		emoji: '👁️',
-		systemPrompt: `You are a Senior Code Reviewer. Your role is to review implementations for correctness, code quality, test coverage, and adherence to conventions. Be thorough but constructive. Flag potential bugs, race conditions, and logic errors.`,
-	},
-	orchestrator: {
-		id: 'orchestrator',
-		name: 'Orchestrator',
-		emoji: '🎯',
-		systemPrompt: `You are the Orchestrator Agent for Ultra Mode. Your role is to:
-1. Analyze the user's request and break it down into phases
-2. Assign the right agents to each phase
-3. Collect outputs from all agents
-4. Resolve conflicts and synthesize a final, integrated response
+/**
+ * Build workspace context for the Orchestrator to analyze.
+ * Reads AGENTS.md + detects project type from file structure.
+ */
+export function buildWorkspaceContext(): string {
+	const vscode = require('vscode');
+	const folders = vscode.workspace.workspaceFolders;
+	if (!folders?.length) return '';
 
-Output your workflow plan as JSON with this structure:
-{
-  "summary": "one-line task summary",
-  "phases": [
-    {"name": "Research", "agents": ["architect", "security"], "parallel": true, "prompt": "..."},
-    {"name": "Design", "agents": ["architect", "ux", "performance"], "prompt": "..."},
-    {"name": "Review", "agents": ["reviewer", "security"], "prompt": "..."}
-  ]
-}`,
-	},
-};
+	const root = folders[0].uri.fsPath;
 
-export function getAgent(id: string): AgentRole | undefined {
-	return ULTRA_AGENTS[id];
-}
+	try {
+		const { readFileSync, existsSync, readdirSync } = require('node:fs');
+		const { join } = require('node:path');
+		const parts: string[] = [];
 
-export function getAgents(ids: string[]): AgentRole[] {
-	return ids.map((id) => ULTRA_AGENTS[id]).filter(Boolean);
+		const agentsPath = join(root, 'AGENTS.md');
+		if (existsSync(agentsPath)) {
+			parts.push('## AGENTS.md\n' + readFileSync(agentsPath, 'utf-8').slice(0, 3000));
+		}
+
+		const hasFile = (name: string) => existsSync(join(root, name));
+		const types: string[] = [];
+		if (hasFile('package.json')) types.push('Node.js/JavaScript');
+		if (hasFile('tsconfig.json')) types.push('TypeScript');
+		if (hasFile('Cargo.toml')) types.push('Rust');
+		if (hasFile('go.mod')) types.push('Go');
+		if (hasFile('requirements.txt') || hasFile('pyproject.toml')) types.push('Python');
+		if (hasFile('src/app') || hasFile('src/pages')) types.push('Frontend');
+		if (hasFile('src/server') || hasFile('src/api')) types.push('Backend API');
+		if (hasFile('Dockerfile')) types.push('Docker');
+		if (types.length) parts.push(`## Project Type: ${types.join(', ')}`);
+
+		try {
+			const entries = readdirSync(root, { withFileTypes: true });
+			const dirs = entries
+				.filter((e: { isDirectory: () => boolean; name: string }) =>
+					e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')
+				.map((e: { name: string }) => e.name);
+			if (dirs.length) parts.push(`## Top-level: ${dirs.join(', ')}`);
+		} catch { /* ignore */ }
+
+		return parts.join('\n\n');
+	} catch {
+		return '';
+	}
 }

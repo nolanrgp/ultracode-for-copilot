@@ -47,11 +47,15 @@ export function buildWorkspaceContext(): string {
 		try {
 			const entries = readdirSync(root, { withFileTypes: true });
 			const dirs = entries
-				.filter((e: { isDirectory: () => boolean; name: string }) =>
-					e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')
+				.filter(
+					(e: { isDirectory: () => boolean; name: string }) =>
+						e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules',
+				)
 				.map((e: { name: string }) => e.name);
 			if (dirs.length) parts.push(`## Top-level: ${dirs.join(', ')}`);
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 
 		return parts.join('\n\n');
 	} catch {

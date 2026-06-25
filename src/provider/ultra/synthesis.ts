@@ -66,8 +66,10 @@ FINAL SYNTHESIS:`;
 		}
 	} catch (err) {
 		logger.error('Ultra synthesis failed', err);
-		progress.report(new vscode.LanguageModelTextPart(
-			`\n\nUltra synthesis error: ${err instanceof Error ? err.message : String(err)}`,
-		));
+		progress.report(
+			new vscode.LanguageModelTextPart(
+				`\n\nUltra synthesis error: ${err instanceof Error ? err.message : String(err)}`,
+			),
+		);
 	}
 }

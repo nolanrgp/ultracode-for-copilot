@@ -225,7 +225,8 @@ function joinInitialResponseNotices(...notices: (string | undefined)[]): string 
 function extractUserPrompt(messages: readonly vscode.LanguageModelChatRequestMessage[]): string {
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const msg = messages[i];
-		if (msg.role === 1) { // user role
+		if (msg.role === 1) {
+			// user role
 			return msg.content
 				.map((p) => (p instanceof vscode.LanguageModelTextPart ? p.value : ''))
 				.join('');

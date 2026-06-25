@@ -85,7 +85,12 @@ function buildThinkingEffortSchema() {
 				type: 'string',
 				title: t('status.thinking'),
 				enum: ['none', 'high', 'max', 'ultra'],
-				enumItemLabels: [t('thinking.none'), t('thinking.high'), t('thinking.max'), t('thinking.ultra')],
+				enumItemLabels: [
+					t('thinking.none'),
+					t('thinking.high'),
+					t('thinking.max'),
+					t('thinking.ultra'),
+				],
 				enumDescriptions: [
 					t('thinking.none.desc'),
 					t('thinking.high.desc'),

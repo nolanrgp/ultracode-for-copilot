@@ -88,29 +88,38 @@ export async function runUltraWorkflow(
 		agentMap.set(a.id, a);
 	}
 
-	progress.report(new vscode.LanguageModelTextPart(
-		`📋 **Workflow Plan:** ${plan.summary}\n\n` +
-		`🧑‍🤝‍🧑 **Team:** ${plan.agents.map((a) => `${a.emoji} ${a.name}`).join(' | ')}\n\n` +
-		plan.phases.map((p, i) => `  Phase ${i + 1}: **${p.name}** [${p.agents.join(', ')}]${p.parallel ? ' (parallel)' : ''}`).join('\n') +
-		'\n\n---\n\n',
-	));
+	progress.report(
+		new vscode.LanguageModelTextPart(
+			`📋 **Workflow Plan:** ${plan.summary}\n\n` +
+				`🧑‍🤝‍🧑 **Team:** ${plan.agents.map((a) => `${a.emoji} ${a.name}`).join(' | ')}\n\n` +
+				plan.phases
+					.map(
+						(p, i) =>
+							`  Phase ${i + 1}: **${p.name}** [${p.agents.join(', ')}]${p.parallel ? ' (parallel)' : ''}`,
+					)
+					.join('\n') +
+				'\n\n---\n\n',
+		),
+	);
 
 	// === PHASE 2: Execute phases with dynamic agents ===
 	const phaseResults = new Map<string, Awaited<ReturnType<typeof runParallelAgents>>>();
 	let allResults: Awaited<ReturnType<typeof runParallelAgents>> = [];
 
 	for (const phase of plan.phases) {
-		progress.report(new vscode.LanguageModelTextPart(
-			`\n🤖 **Phase: ${phase.name}** — agents working...\n\n`,
-		));
+		progress.report(
+			new vscode.LanguageModelTextPart(`\n🤖 **Phase: ${phase.name}** — agents working...\n\n`),
+		);
 
 		const agents = phase.agents.map((id) => agentMap.get(id)).filter(Boolean) as AgentRole[];
 		const results = await runParallelAgents(agents, phase.prompt, token);
 
 		for (const r of results) {
-			progress.report(new vscode.LanguageModelTextPart(
-				`  ${r.agent.emoji} **${r.agent.name}** (${r.duration}ms):\n  ${r.output.slice(0, 200)}...\n\n`,
-			));
+			progress.report(
+				new vscode.LanguageModelTextPart(
+					`  ${r.agent.emoji} **${r.agent.name}** (${r.duration}ms):\n  ${r.output.slice(0, 200)}...\n\n`,
+				),
+			);
 		}
 
 		phaseResults.set(phase.name, results);
@@ -121,7 +130,11 @@ export async function runUltraWorkflow(
 
 	// === PHASE 3: Cross-review ===
 	if (allResults.length >= 2) {
-		progress.report(new vscode.LanguageModelTextPart('\n🔄 **Cross-Review** — agents reviewing each other...\n\n'));
+		progress.report(
+			new vscode.LanguageModelTextPart(
+				'\n🔄 **Cross-Review** — agents reviewing each other...\n\n',
+			),
+		);
 
 		const reviews = await runCrossReviews(allResults, token);
 
@@ -133,7 +146,9 @@ export async function runUltraWorkflow(
 
 		if (token.isCancellationRequested) return;
 
-		progress.report(new vscode.LanguageModelTextPart('\n---\n\n🎯 **Orchestrator Synthesis:**\n\n'));
+		progress.report(
+			new vscode.LanguageModelTextPart('\n---\n\n🎯 **Orchestrator Synthesis:**\n\n'),
+		);
 		await runSynthesis(userPrompt, phaseResults, reviews, progress, token);
 	} else {
 		progress.report(new vscode.LanguageModelTextPart('\n---\n\n🎯 **Result:**\n\n'));
@@ -152,12 +167,14 @@ async function createWorkflowPlan(
 		const workspaceContext = buildWorkspaceContext();
 
 		const response = await model.sendRequest(
-			[vscode.LanguageModelChatMessage.User(
-				`${ORCHESTRATOR_PROMPT}\n\n` +
-				`WORKSPACE CONTEXT:\n${workspaceContext || '(no context available)'}\n\n` +
-				`USER REQUEST:\n${prompt}\n\n` +
-				`Create a workflow plan with custom agents. Output ONLY valid JSON.`,
-			)],
+			[
+				vscode.LanguageModelChatMessage.User(
+					`${ORCHESTRATOR_PROMPT}\n\n` +
+						`WORKSPACE CONTEXT:\n${workspaceContext || '(no context available)'}\n\n` +
+						`USER REQUEST:\n${prompt}\n\n` +
+						`Create a workflow plan with custom agents. Output ONLY valid JSON.`,
+				),
+			],
 			{},
 			token,
 		);

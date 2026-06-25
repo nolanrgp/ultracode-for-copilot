@@ -3,7 +3,7 @@
   "displayName": "Ultracode for Copilot",
   "description": "Ultracode effort mode for Copilot Chat — Claude Code-style deep reasoning with manifest, planning, and self-review.",
   "icon": "resources/icon.png",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "publisher": "Vizards",
   "license": "MIT",
   "repository": {
